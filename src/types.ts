@@ -3,6 +3,16 @@ export interface GenerateResult {
 	explanation: string;
 }
 
+export interface MultiFileResult {
+	multi_file: true;
+	glob: string[];
+	commands: string[];
+	output_template: string;
+	explanation: string;
+}
+
+export type AiResult = GenerateResult | MultiFileResult;
+
 export interface ToolContext {
 	ffmpeg: {
 		installed: boolean;

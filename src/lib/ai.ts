@@ -1,4 +1,4 @@
-import type { GenerateResult } from "../types.js";
+import type { AiResult, GenerateResult, MultiFileResult } from "../types.js";
 import type { CloudflareCredentials, AviconConfig } from "./config.js";
 
 export const CF_MODEL = "@cf/openai/gpt-oss-120b";
@@ -14,7 +14,7 @@ export class ValidationError extends Error {
 	}
 }
 
-export function validateResponse(raw: string): GenerateResult {
+export function validateResponse(raw: string): AiResult {
 	const cleaned = raw
 		.trim()
 		.replace(/^```(?:json)?\n?/, "")
@@ -27,7 +27,37 @@ export function validateResponse(raw: string): GenerateResult {
 		throw new ValidationError("Invalid JSON response from AI", raw);
 	}
 
-	const obj = parsed as { commands?: unknown; explanation?: unknown };
+	const obj = parsed as {
+		multi_file?: unknown;
+		glob?: unknown;
+		commands?: unknown;
+		output_template?: unknown;
+		explanation?: unknown;
+	};
+
+	if (obj.multi_file === true) {
+		if (
+			!Array.isArray(obj.glob) ||
+			!obj.glob.every((g: unknown) => typeof g === "string") ||
+			!Array.isArray(obj.commands) ||
+			!obj.commands.every((c: unknown) => typeof c === "string") ||
+			typeof obj.output_template !== "string" ||
+			typeof obj.explanation !== "string"
+		) {
+			throw new ValidationError(
+				"Multi-file response missing required fields: glob (string[]), commands (string[]), output_template (string), explanation (string)",
+				raw,
+			);
+		}
+		return {
+			multi_file: true,
+			glob: obj.glob as string[],
+			commands: obj.commands as string[],
+			output_template: obj.output_template,
+			explanation: obj.explanation,
+		} satisfies MultiFileResult;
+	}
+
 	if (
 		!Array.isArray(obj.commands) ||
 		!obj.commands.every((c: unknown) => typeof c === "string") ||
@@ -39,14 +69,14 @@ export function validateResponse(raw: string): GenerateResult {
 		);
 	}
 
-	return { commands: obj.commands as string[], explanation: obj.explanation };
+	return { commands: obj.commands as string[], explanation: obj.explanation } satisfies GenerateResult;
 }
 
 export async function generateWithCloudflare(
 	systemPrompt: string,
 	userPrompt: string,
 	credentials: CloudflareCredentials,
-): Promise<GenerateResult> {
+): Promise<AiResult> {
 	const response = await fetch(
 		`https://api.cloudflare.com/client/v4/accounts/${credentials.accountId}/ai/v1/chat/completions`,
 		{
@@ -83,7 +113,7 @@ export async function generateWithCloudflare(
 export async function generateWithClaude(
 	systemPrompt: string,
 	userPrompt: string,
-): Promise<GenerateResult> {
+): Promise<AiResult> {
 	const combinedPrompt = `${systemPrompt}\n\n${userPrompt}`;
 	const proc = Bun.spawn(
 		["claude", "--model", CLAUDE_MODEL, "-p", combinedPrompt],
@@ -99,7 +129,7 @@ export async function generate(
 	systemPrompt: string,
 	userPrompt: string,
 	config: AviconConfig,
-): Promise<GenerateResult> {
+): Promise<AiResult> {
 	if (config.defaultProvider === "cloudflare") {
 		if (!config.cloudflare) {
 			throw new Error(

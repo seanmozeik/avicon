@@ -6,10 +6,11 @@ import { generate, ValidationError } from "./lib/ai.js";
 import { copyToClipboard } from "./lib/clipboard.js";
 import type { Provider, AviconConfig } from "./lib/config.js";
 import { deleteConfig, getConfig, setConfig } from "./lib/config.js";
+import { buildBatchCommands, expandGlob } from "./lib/multi.js";
 import { buildSystemPrompt, buildUserPrompt } from "./lib/prompt.js";
 import { runCommands } from "./lib/run.js";
 import { detectContext } from "./lib/tools.js";
-import type { GenerateResult } from "./types.js";
+import type { AiResult, GenerateResult, MultiFileResult } from "./types.js";
 import { showBanner } from "./ui/banner.js";
 import { boxColors, frappe, theme } from "./ui/theme.js";
 
@@ -244,6 +245,54 @@ function renderPanels(result: GenerateResult): void {
 	}
 }
 
+// ── Batch panels ──────────────────────────────────────────────────────────────
+
+function renderBatchPanels(
+	result: MultiFileResult,
+	fileGroups: Array<{ file: string; commands: string[] }>,
+): void {
+	const explanationBox = boxen(result.explanation, {
+		borderColor: boxColors.primary,
+		borderStyle: "round",
+		padding: { top: 1, bottom: 1, left: 2, right: 2 },
+		title: "What this does",
+		titleAlignment: "center",
+	});
+	console.log(`\n${explanationBox}`);
+
+	const stepCount = result.commands.length;
+	const fileCount = fileGroups.length;
+	const PREVIEW_MAX = 3;
+	const preview = fileGroups.slice(0, PREVIEW_MAX);
+	const rest = fileGroups.length - preview.length;
+
+	const longestInput = Math.max(...preview.map((g) => g.file.length));
+	const rows = preview.map(({ file, commands }) => {
+		const output = commands[commands.length - 1]?.match(/\S+$/) ?? ["?"];
+		const outputFile = output[0];
+		const pad = " ".repeat(longestInput - file.length + 2);
+		return `  ${frappe.sky(file)}${pad}→  ${outputFile}`;
+	});
+	if (rest > 0) {
+		rows.push(`  ${theme.muted(`…and ${rest} more`)}`);
+	}
+
+	const previewBody = [
+		`${frappe.sky(String(fileCount))} file${fileCount !== 1 ? "s" : ""} matched ${result.glob.join(", ")}  (${stepCount} command${stepCount !== 1 ? "s" : ""} each):`,
+		...rows,
+	].join("\n");
+
+	const previewBox = boxen(previewBody, {
+		borderColor: boxColors.default,
+		dimBorder: true,
+		borderStyle: "round",
+		padding: { top: 0, bottom: 0, left: 1, right: 1 },
+		title: "Batch preview",
+		titleAlignment: "left",
+	});
+	console.log(`\n${previewBox}\n`);
+}
+
 // ── Post-run cleanup ──────────────────────────────────────────────────────────
 
 const MEDIA_EXT_RE =
@@ -288,7 +337,7 @@ async function tryGenerate(
 	userRequest: string,
 	ctx: ToolCtx,
 	config: AviconConfig,
-): Promise<GenerateResult | null> {
+): Promise<AiResult | null> {
 	const s = p.spinner();
 	s.start("Generating command");
 	try {
@@ -338,12 +387,12 @@ async function promptErrorRecovery(
 	return edited as string;
 }
 
-// Retries until a successful GenerateResult is obtained or the user cancels.
+// Retries until a successful AiResult is obtained or the user cancels.
 async function generateUntilSuccess(
 	initialRequest: string,
 	ctx: ToolCtx,
 	config: AviconConfig,
-): Promise<{ result: GenerateResult; userRequest: string }> {
+): Promise<{ result: AiResult; userRequest: string }> {
 	let userRequest = initialRequest;
 	for (;;) {
 		const result = await tryGenerate(userRequest, ctx, config);
@@ -361,7 +410,7 @@ async function handleEditPromptAction(
 	userRequest: string,
 	ctx: ToolCtx,
 	config: AviconConfig,
-): Promise<{ result: GenerateResult; userRequest: string }> {
+): Promise<{ result: AiResult; userRequest: string }> {
 	const edited = await p.text({
 		message: "Edit your request:",
 		initialValue: userRequest,
@@ -424,30 +473,17 @@ async function handleRunAction(commands: string[]): Promise<void> {
 	process.exit(success ? 0 : 1);
 }
 
-// ── Conversion flow ───────────────────────────────────────────────────────────
+// ── Single-file flow ──────────────────────────────────────────────────────────
 
-async function runConversion(
+async function runSingleFileFlow(
+	initial: GenerateResult,
 	initialRequest: string,
+	ctx: ToolCtx,
 	config: AviconConfig,
 ): Promise<void> {
-	const toolSpinner = p.spinner();
-	toolSpinner.start("Detecting tools");
-	const ctx = await detectContext();
-	toolSpinner.stop("Tools detected.");
-	p.log.info(renderToolSummary(ctx));
+	let currentResult = initial;
+	let userRequest = initialRequest;
 
-	if (!ctx.ffmpeg.installed && !ctx.magick.installed) {
-		p.log.error(
-			"No media tools found. Install FFmpeg or ImageMagick and try again.",
-		);
-		process.exit(1);
-	}
-
-	let { result: currentResult, userRequest } = await generateUntilSuccess(
-		initialRequest,
-		ctx,
-		config,
-	);
 	renderPanels(currentResult);
 
 	while (true) {
@@ -483,18 +519,22 @@ async function runConversion(
 		}
 
 		if (action === "retry") {
-			({ result: currentResult, userRequest } = await generateUntilSuccess(
-				userRequest,
-				ctx,
-				config,
-			));
+			const gen = await generateUntilSuccess(userRequest, ctx, config);
+			userRequest = gen.userRequest;
+			if ("multi_file" in gen.result) {
+				await handleBatchFlow(gen.result as MultiFileResult, userRequest, ctx, config);
+				return;
+			}
+			currentResult = gen.result as GenerateResult;
 			renderPanels(currentResult);
 		} else if (action === "edit-prompt") {
-			({ result: currentResult, userRequest } = await handleEditPromptAction(
-				userRequest,
-				ctx,
-				config,
-			));
+			const gen = await handleEditPromptAction(userRequest, ctx, config);
+			userRequest = gen.userRequest;
+			if ("multi_file" in gen.result) {
+				await handleBatchFlow(gen.result as MultiFileResult, userRequest, ctx, config);
+				return;
+			}
+			currentResult = gen.result as GenerateResult;
 			renderPanels(currentResult);
 		} else if (action === "copy") {
 			await handleCopyAction(currentResult.commands);
@@ -504,6 +544,151 @@ async function runConversion(
 		} else if (action === "run") {
 			await handleRunAction(currentResult.commands);
 		}
+	}
+}
+
+// ── Batch flow ────────────────────────────────────────────────────────────────
+
+async function handleBatchFlow(
+	initial: MultiFileResult,
+	initialRequest: string,
+	ctx: ToolCtx,
+	config: AviconConfig,
+): Promise<void> {
+	let result = initial;
+	let userRequest = initialRequest;
+
+	for (;;) {
+		// 1. Expand globs
+		const files = await expandGlob(result.glob);
+
+		if (files.length === 0) {
+			p.log.warn(`No files matched: ${result.glob.join(", ")}`);
+			const recovery = await p.select({
+				message: "What would you like to do?",
+				options: [
+					{ value: "retry", label: "Retry", hint: "regenerate with same prompt" },
+					{ value: "edit-prompt", label: "Edit prompt", hint: "modify request and retry" },
+					{ value: "cancel", label: "Cancel" },
+				],
+			});
+			if (p.isCancel(recovery) || recovery === "cancel") {
+				p.outro("Cancelled.");
+				process.exit(0);
+			}
+			const gen =
+				recovery === "retry"
+					? await generateUntilSuccess(userRequest, ctx, config)
+					: await handleEditPromptAction(userRequest, ctx, config);
+			userRequest = gen.userRequest;
+			if (!("multi_file" in gen.result)) {
+				await runSingleFileFlow(gen.result as GenerateResult, userRequest, ctx, config);
+				return;
+			}
+			result = gen.result as MultiFileResult;
+			continue;
+		}
+
+		// 2. Build file groups and render
+		const fileGroups = buildBatchCommands(files, result.commands, result.output_template);
+		renderBatchPanels(result, fileGroups);
+
+		// 3. Action loop
+		const totalSteps = fileGroups.reduce((n, g) => n + g.commands.length, 0);
+		const action = await p.select({
+			message: "What would you like to do?",
+			options: [
+				{
+					value: "run",
+					label: `Run all (${files.length} file${files.length !== 1 ? "s" : ""}, ${result.commands.length} step${result.commands.length !== 1 ? "s" : ""} each)`,
+				},
+				{ value: "edit-template", label: "Edit template", hint: "modify the command templates" },
+				{ value: "retry", label: "Retry", hint: "regenerate with same prompt" },
+				{ value: "edit-prompt", label: "Edit prompt", hint: "modify request and retry" },
+				{ value: "cancel", label: "Cancel" },
+			],
+		});
+
+		if (p.isCancel(action) || action === "cancel") {
+			p.outro("Cancelled.");
+			process.exit(0);
+		}
+
+		if (action === "run") {
+			const allCommands = fileGroups.flatMap((g) => g.commands);
+			const success = await runCommands(allCommands, {
+				onBefore: (cmd, i) => p.log.step(`▶ [${i + 1}/${totalSteps}] ${cmd}`),
+				onSuccess: () => p.log.success("All commands completed successfully."),
+				onError: (cmd, exitCode) => p.log.error(`Command exited with code ${exitCode}: ${cmd}`),
+			});
+			if (success) {
+				await runCleanup(files);
+			}
+			process.exit(success ? 0 : 1);
+		}
+
+		if (action === "edit-template") {
+			const edited = await p.text({
+				message: "Edit command templates (one per line):",
+				initialValue: result.commands.join("\n"),
+			});
+			if (p.isCancel(edited)) {
+				p.outro("Cancelled.");
+				process.exit(0);
+			}
+			const newCommands = (edited as string)
+				.split("\n")
+				.map((l) => l.trim())
+				.filter(Boolean);
+			result = { ...result, commands: newCommands };
+			continue;
+		}
+
+		if (action === "retry" || action === "edit-prompt") {
+			const gen =
+				action === "retry"
+					? await generateUntilSuccess(userRequest, ctx, config)
+					: await handleEditPromptAction(userRequest, ctx, config);
+			userRequest = gen.userRequest;
+			if (!("multi_file" in gen.result)) {
+				await runSingleFileFlow(gen.result as GenerateResult, userRequest, ctx, config);
+				return;
+			}
+			result = gen.result as MultiFileResult;
+			continue;
+		}
+	}
+}
+
+// ── Conversion flow ───────────────────────────────────────────────────────────
+
+async function runConversion(
+	initialRequest: string,
+	config: AviconConfig,
+): Promise<void> {
+	const toolSpinner = p.spinner();
+	toolSpinner.start("Detecting tools");
+	const ctx = await detectContext();
+	toolSpinner.stop("Tools detected.");
+	p.log.info(renderToolSummary(ctx));
+
+	if (!ctx.ffmpeg.installed && !ctx.magick.installed) {
+		p.log.error(
+			"No media tools found. Install FFmpeg or ImageMagick and try again.",
+		);
+		process.exit(1);
+	}
+
+	const { result, userRequest } = await generateUntilSuccess(
+		initialRequest,
+		ctx,
+		config,
+	);
+
+	if ("multi_file" in result) {
+		await handleBatchFlow(result as MultiFileResult, userRequest, ctx, config);
+	} else {
+		await runSingleFileFlow(result as GenerateResult, userRequest, ctx, config);
 	}
 }
 

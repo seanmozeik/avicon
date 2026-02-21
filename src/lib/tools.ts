@@ -33,14 +33,18 @@ async function probeFfmpeg(): Promise<ToolContext["ffmpeg"]> {
 	]);
 
 	// Codecs: " DEV.LS h264  H.264 ... (encoders: libx264 h264_videotoolbox)"
+	// Only keep entries where position 2 is 'E' (has at least one encoder).
+	// When an (encoders: ...) list is present, expose those names directly
+	// (they are the actual encoder IDs to pass to -c:v/-c:a).
+	// Otherwise the codec name itself is the encoder.
 	const codecs = codecsOut
 		.split("\n")
-		.filter((l) => /^ [D.][E.][VASDT][I.][L.][S.] \S/.test(l))
-		.map((l) => {
+		.filter((l) => /^ [D.]E[VASDT][I.][L.][S.] \S/.test(l))
+		.flatMap((l) => {
 			const rest = l.slice(8);
 			const name = rest.trim().split(/\s+/)[0] ?? "";
 			const encoderMatch = rest.match(/\(encoders: ([^)]+)\)/);
-			return encoderMatch ? `${name} (encoders: ${encoderMatch[1]})` : name;
+			return encoderMatch?.[1] ? encoderMatch[1].trim().split(/\s+/) : [name];
 		})
 		.filter(Boolean);
 
