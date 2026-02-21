@@ -208,6 +208,43 @@ function renderPanels(result: { commands: string[]; explanation: string }): void
   console.log('\n' + commandsBox + '\n');
 }
 
+// ── Post-run cleanup ──────────────────────────────────────────────────────────
+
+const MEDIA_EXT_RE = /\S+\.(?:png|jpg|jpeg|gif|webp|avif|mp4|mov|mkv|mp3|wav|flac|aac)/gi;
+
+function inferInputFiles(commands: string[]): string[] {
+  const files = new Set<string>();
+  for (const cmd of commands) {
+    const matches = cmd.match(MEDIA_EXT_RE);
+    if (matches) {
+      for (const m of matches) files.add(m);
+    }
+  }
+  return [...files];
+}
+
+async function runCleanup(files: string[]): Promise<void> {
+  if (files.length === 0) return;
+
+  p.log.info(`Input files detected:\n  ${files.join('\n  ')}`);
+
+  const confirm = await p.confirm({
+    message: 'Delete original files?',
+    initialValue: false,
+  });
+
+  if (p.isCancel(confirm) || !confirm) return;
+
+  for (const file of files) {
+    try {
+      await Bun.$`rm ${file}`;
+      p.log.success(`Deleted ${file}`);
+    } catch {
+      p.log.error(`Failed to delete ${file}`);
+    }
+  }
+}
+
 // ── Conversion flow ───────────────────────────────────────────────────────────
 
 async function runConversion(request: string, config: ViconConfig): Promise<void> {
@@ -298,6 +335,8 @@ async function runConversion(request: string, config: ViconConfig): Promise<void
         onError: (cmd, exitCode) =>
           p.log.error(`Command exited with code ${exitCode}: ${cmd}`),
       });
+
+      await runCleanup(inferInputFiles(currentResult.commands));
       process.exit(success ? 0 : 1);
     }
   }
