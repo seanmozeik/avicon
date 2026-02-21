@@ -57,8 +57,8 @@
         "Typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Created src/lib/secrets.ts (SECRETS_SERVICE='com.vicon.cli', CONFIG_KEY='VICON_CONFIG'). Created src/lib/config.ts (Provider type, CloudflareCredentials/ViconConfig interfaces, three-state cache, getConfig/setConfig/deleteConfig with Bun.secrets + env-var fallback and Linux libsecret install hints). Updated src/lib/ai.ts to import types from config.ts. Updated src/index.ts: setup subcommand (p.select provider, collect CF creds or verify claude CLI), teardown subcommand (p.confirm default No → deleteConfig), --provider flag override, missing-credentials guard at conversion time. Typecheck passes."
     },
     {
       "id": "US-004",
