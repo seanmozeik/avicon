@@ -1,49 +1,49 @@
 {
-	"name": "@seanmozeik/vicon",
-	"version": "0.1.0",
-	"description": "AI-powered media conversion CLI — describe what you want, get the commands",
-	"type": "module",
-	"bin": {
-		"vicon": "src/index.ts"
-	},
-	"files": [
-		"src",
-		"package.json"
-	],
-	"keywords": [
-		"media",
-		"conversion",
-		"ffmpeg",
-		"imagemagick",
-		"cli",
-		"ai",
-		"bun"
-	],
-	"license": "MIT",
-	"publishConfig": {
-		"access": "public"
-	},
-	"repository": {
-		"type": "git",
-		"url": "git+https://github.com/seanmozeik/vicon.git"
-	},
-	"dependencies": {
-		"@clack/prompts": "latest",
-		"boxen": "latest",
-		"gradient-string": "latest",
-		"picocolors": "latest"
-	},
-	"devDependencies": {
-		"@types/bun": "latest"
-	},
-	"peerDependencies": {
-		"typescript": "^5"
-	},
-	"scripts": {
-		"build": "bun build ./src/index.ts --compile --outfile vicon --minify",
-		"bundle": "bun build ./src/index.ts --outdir dist --target=bun --bytecode --minify",
-		"dev": "bun --hot src/index.ts",
-		"install-local": "bun run build && mkdir -p ~/.local/bin && mv vicon ~/.local/bin/vicon && chmod +x ~/.local/bin/vicon",
-		"test": "bun test"
-	}
+  "name": "@seanmozeik/vicon",
+  "version": "0.1.0",
+  "description": "AI-powered media conversion CLI — describe what you want, get the commands",
+  "type": "module",
+  "bin": {
+    "vicon": "src/index.ts"
+  },
+  "files": [
+    "src",
+    "package.json"
+  ],
+  "keywords": [
+    "media",
+    "conversion",
+    "ffmpeg",
+    "imagemagick",
+    "cli",
+    "ai",
+    "bun"
+  ],
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/seanmozeik/vicon.git"
+  },
+  "dependencies": {
+    "@clack/prompts": "latest",
+    "boxen": "latest",
+    "gradient-string": "latest",
+    "picocolors": "latest"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "scripts": {
+    "build": "bun build ./src/index.ts --compile --outfile vicon --minify",
+    "bundle": "bun build ./src/index.ts --outdir dist --target=bun --bytecode --minify",
+    "dev": "bun --hot src/index.ts",
+    "install-local": "bun run build && mkdir -p ~/.local/bin && mv vicon ~/.local/bin/vicon && chmod +x ~/.local/bin/vicon",
+    "test": "bun test"
+  }
 }
