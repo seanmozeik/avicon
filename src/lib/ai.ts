@@ -1,18 +1,8 @@
 import type { GenerateResult } from '../types.js';
+import type { CloudflareCredentials, ViconConfig } from './config.js';
 
 export const CF_MODEL = '@cf/openai/gpt-oss-120b';
 export const CLAUDE_MODEL = 'sonnet';
-
-// These will be imported from src/lib/config.ts once US-003 is implemented
-interface CloudflareCredentials {
-  accountId: string;
-  apiToken: string;
-}
-
-interface ViconConfig {
-  defaultProvider: 'cloudflare' | 'claude';
-  cloudflare?: CloudflareCredentials;
-}
 
 export class ValidationError extends Error {
   constructor(
