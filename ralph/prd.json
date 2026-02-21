@@ -36,8 +36,8 @@
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Created src/types.ts exporting GenerateResult { commands: string[], explanation: string }. Created src/lib/ai.ts with CF_MODEL='@cf/openai/gpt-oss-120b', CLAUDE_MODEL='sonnet', generateWithCloudflare (chat completions API with json_object response_format), generateWithClaude (Bun.spawn claude CLI, reads stdout via new Response(proc.stdout).text()), generate dispatcher, validateResponse with defensive code-fence stripping and typed ValidationError. Both paths pipe through validateResponse. Typecheck passes."
     },
     {
       "id": "US-003",
