@@ -49,7 +49,7 @@ if (versionFlag) {
 }
 
 if (helpFlag) {
-	await showBanner();
+	showBanner();
 	console.log(
 		[
 			"",
@@ -112,7 +112,7 @@ async function setupCloudflare(): Promise<void> {
 }
 
 async function runSetup(): Promise<void> {
-	await showBanner();
+	showBanner();
 	p.intro("Configure vicon AI provider");
 
 	const provider = await p.select<Provider>({
@@ -165,7 +165,7 @@ async function runSetup(): Promise<void> {
 }
 
 async function runTeardown(): Promise<void> {
-	await showBanner();
+	showBanner();
 
 	const confirm = await p.confirm({
 		message: "Delete vicon config from keychain?",
@@ -501,18 +501,18 @@ if (subcommand === "setup") {
 	}
 
 	if (!config) {
-		await showBanner();
+		showBanner();
 		p.log.error("No provider configured. Run: vicon setup");
 		process.exit(1);
 	}
 
 	if (config.defaultProvider === "cloudflare" && !config.cloudflare) {
-		await showBanner();
+		showBanner();
 		p.log.error("Cloudflare credentials missing. Run: vicon setup");
 		process.exit(1);
 	}
 
-	await showBanner();
+	showBanner();
 
 	if (!request) {
 		p.log.info("Usage: vicon <request>  |  vicon --help for more");

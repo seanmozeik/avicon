@@ -30,13 +30,11 @@
 	"dependencies": {
 		"@clack/prompts": "latest",
 		"boxen": "latest",
-		"figlet": "latest",
 		"gradient-string": "latest",
 		"picocolors": "latest"
 	},
 	"devDependencies": {
-		"@types/bun": "latest",
-		"@types/figlet": "latest"
+		"@types/bun": "latest"
 	},
 	"peerDependencies": {
 		"typescript": "^5"
