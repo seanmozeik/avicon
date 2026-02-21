@@ -18,8 +18,8 @@
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Installed @clack/prompts, boxen, figlet, gradient-string, picocolors. Added dev/build scripts to package.json. Created src/ui/theme.ts (full Catppuccin Frappe palette + semantic aliases + gradientColors + boxColors). Created src/ui/banner.ts (showBanner() with ANSI Shadow font, mauve→pink→flamingo gradient). Created src/index.ts entry point. Typecheck passes, banner renders."
     },
     {
       "id": "US-002",
