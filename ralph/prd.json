@@ -131,8 +131,8 @@
         "Typecheck passes"
       ],
       "priority": 7,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added inferInputFiles() scanning commands for media extensions (.png .jpg .jpeg .gif .webp .avif .mp4 .mov .mkv .mp3 .wav .flac .aac) via regex, and runCleanup() that prints detected files, p.confirm (default No), then deletes via Bun.$`rm` with per-file success/error logging. runCleanup called in the 'run' action after runCommands returns (both success and failure paths). --help/-h and --version/-v were already implemented in US-005. Typecheck passes."
     }
   ]
 }
