@@ -77,8 +77,8 @@
         "Typecheck passes"
       ],
       "priority": 4,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added ToolContext interface to src/types.ts. Created src/lib/tools.ts: detectContext() runs ffmpeg and magick probes in parallel via Promise.all, parses version/encoders/decoders/formats, caches for process lifetime, gracefully handles not-found. Created src/lib/prompt.ts: buildSystemPrompt(ctx) builds ## Environment and ## Rules sections with full encoder/decoder/format lists and strict JSON-only output rules; buildUserPrompt(request) returns request unchanged. Typecheck passes."
     },
     {
       "id": "US-005",
