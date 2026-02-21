@@ -218,6 +218,10 @@ function renderToolSummary(ctx: ToolCtx): string {
 
 // ── Display panels ────────────────────────────────────────────────────────────
 
+function colorizeTemplate(cmd: string): string {
+	return cmd.replace(/\{\{(\w+)\}\}/g, (_, name) => frappe.peach(name));
+}
+
 function renderPanels(result: GenerateResult): void {
 	const explanationBox = boxen(result.explanation, {
 		borderColor: boxColors.primary,
@@ -230,7 +234,7 @@ function renderPanels(result: GenerateResult): void {
 
 	if (result.commands.length > 0) {
 		const numberedCmds = result.commands
-			.map((cmd, i) => `${frappe.sky(`[${i + 1}]`)} ${cmd}`)
+			.map((cmd, i) => `${frappe.sky(`[${i + 1}]`)} ${colorizeTemplate(cmd)}`)
 			.join("\n");
 
 		const commandsBox = boxen(numberedCmds, {
@@ -260,25 +264,34 @@ function renderBatchPanels(
 	});
 	console.log(`\n${explanationBox}`);
 
-	const stepCount = result.commands.length;
 	const fileCount = fileGroups.length;
 	const PREVIEW_MAX = 3;
 	const preview = fileGroups.slice(0, PREVIEW_MAX);
 	const rest = fileGroups.length - preview.length;
 
-	const longestInput = Math.max(...preview.map((g) => g.file.length));
-	const rows = preview.map(({ file, commands }) => {
-		const output = commands[commands.length - 1]?.match(/\S+$/) ?? ["?"];
-		const outputFile = output[0];
-		const pad = " ".repeat(longestInput - file.length + 2);
-		return `  ${frappe.sky(file)}${pad}→  ${outputFile}`;
-	});
+	const rows = preview.map(({ file }) => `  ${frappe.sky(file)}`);
 	if (rest > 0) {
 		rows.push(`  ${theme.muted(`…and ${rest} more`)}`);
 	}
 
+	if (result.commands.length > 0) {
+		const numberedCmds = result.commands
+			.map((cmd, i) => `${frappe.sky(`[${i + 1}]`)} ${colorizeTemplate(cmd)}`)
+			.join("\n");
+
+		const commandsBox = boxen(numberedCmds, {
+			borderColor: boxColors.default,
+			dimBorder: true,
+			borderStyle: "round",
+			padding: { top: 0, bottom: 0, left: 1, right: 1 },
+			title: "Commands",
+			titleAlignment: "left",
+		});
+		console.log(`\n${commandsBox}`);
+	}
+
 	const previewBody = [
-		`${frappe.sky(String(fileCount))} file${fileCount !== 1 ? "s" : ""} matched ${result.glob.join(", ")}  (${stepCount} command${stepCount !== 1 ? "s" : ""} each):`,
+		`${frappe.sky(String(fileCount))} file${fileCount !== 1 ? "s" : ""} matched ${result.glob.join(", ")}:`,
 		...rows,
 	].join("\n");
 

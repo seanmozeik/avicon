@@ -78,13 +78,13 @@ GIF output — always use the two-step palette pipeline, never a single-command 
 SINGLE-FILE MODE: Use when operating on specific named file(s) or when the user provides explicit filenames.
   Schema: { "commands": string[], "explanation": string }
   - commands: concrete shell strings, no placeholders, no &&, no loops; may have multiple steps (e.g. transcode → encode)
-  - always include -hide_banner -nostdin in every ffmpeg command
+  - always include -hide_banner -nostdin in every ffmpeg command; do NOT add these flags to magick commands
   - If neither tool can handle the task, return { "commands": [], "explanation": "<reason why it cannot be done with available tools>" }
 
 BATCH MODE: Use when user wants to process all files matching a pattern (e.g. "all mp4s", "every image", "all files in this folder").
   Schema: { "multi_file": true, "glob": string[], "commands": string[], "output_template": string, "explanation": string }
   - glob: array of glob patterns relative to cwd (e.g. ["*.mp4"])
-  - commands: template strings — each may use {{input}}, {{output}}, {{stem}}, {{dir}}; always include -hide_banner -nostdin in every ffmpeg command
+  - commands: template strings — each may use {{input}}, {{output}}, {{stem}}, {{dir}}; always include -hide_banner -nostdin in every ffmpeg command; do NOT add these flags to magick commands
       {{input}} — path to the input file
       {{output}} — resolved output path (from output_template)
       {{stem}} — filename without extension (e.g. "video" from "video.mp4")
