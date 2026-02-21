@@ -481,8 +481,10 @@ const subcommand = args[0];
 
 if (subcommand === "setup") {
 	await runSetup();
+	process.exit(0);
 } else if (subcommand === "teardown") {
 	await runTeardown();
+	process.exit(0);
 } else {
 	// First non-flag positional arg is the conversion request
 	const request = args.find((a) => !a.startsWith("-"));
