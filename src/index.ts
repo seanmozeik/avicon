@@ -522,7 +522,12 @@ async function runSingleFileFlow(
 			const gen = await generateUntilSuccess(userRequest, ctx, config);
 			userRequest = gen.userRequest;
 			if ("multi_file" in gen.result) {
-				await handleBatchFlow(gen.result as MultiFileResult, userRequest, ctx, config);
+				await handleBatchFlow(
+					gen.result as MultiFileResult,
+					userRequest,
+					ctx,
+					config,
+				);
 				return;
 			}
 			currentResult = gen.result as GenerateResult;
@@ -531,7 +536,12 @@ async function runSingleFileFlow(
 			const gen = await handleEditPromptAction(userRequest, ctx, config);
 			userRequest = gen.userRequest;
 			if ("multi_file" in gen.result) {
-				await handleBatchFlow(gen.result as MultiFileResult, userRequest, ctx, config);
+				await handleBatchFlow(
+					gen.result as MultiFileResult,
+					userRequest,
+					ctx,
+					config,
+				);
 				return;
 			}
 			currentResult = gen.result as GenerateResult;
@@ -567,8 +577,16 @@ async function handleBatchFlow(
 			const recovery = await p.select({
 				message: "What would you like to do?",
 				options: [
-					{ value: "retry", label: "Retry", hint: "regenerate with same prompt" },
-					{ value: "edit-prompt", label: "Edit prompt", hint: "modify request and retry" },
+					{
+						value: "retry",
+						label: "Retry",
+						hint: "regenerate with same prompt",
+					},
+					{
+						value: "edit-prompt",
+						label: "Edit prompt",
+						hint: "modify request and retry",
+					},
 					{ value: "cancel", label: "Cancel" },
 				],
 			});
@@ -582,7 +600,12 @@ async function handleBatchFlow(
 					: await handleEditPromptAction(userRequest, ctx, config);
 			userRequest = gen.userRequest;
 			if (!("multi_file" in gen.result)) {
-				await runSingleFileFlow(gen.result as GenerateResult, userRequest, ctx, config);
+				await runSingleFileFlow(
+					gen.result as GenerateResult,
+					userRequest,
+					ctx,
+					config,
+				);
 				return;
 			}
 			result = gen.result as MultiFileResult;
@@ -590,7 +613,11 @@ async function handleBatchFlow(
 		}
 
 		// 2. Build file groups and render
-		const fileGroups = buildBatchCommands(files, result.commands, result.output_template);
+		const fileGroups = buildBatchCommands(
+			files,
+			result.commands,
+			result.output_template,
+		);
 		renderBatchPanels(result, fileGroups);
 
 		// 3. Action loop
@@ -602,9 +629,17 @@ async function handleBatchFlow(
 					value: "run",
 					label: `Run all (${files.length} file${files.length !== 1 ? "s" : ""}, ${result.commands.length} step${result.commands.length !== 1 ? "s" : ""} each)`,
 				},
-				{ value: "edit-template", label: "Edit template", hint: "modify the command templates" },
+				{
+					value: "edit-template",
+					label: "Edit template",
+					hint: "modify the command templates",
+				},
 				{ value: "retry", label: "Retry", hint: "regenerate with same prompt" },
-				{ value: "edit-prompt", label: "Edit prompt", hint: "modify request and retry" },
+				{
+					value: "edit-prompt",
+					label: "Edit prompt",
+					hint: "modify request and retry",
+				},
 				{ value: "cancel", label: "Cancel" },
 			],
 		});
@@ -619,7 +654,8 @@ async function handleBatchFlow(
 			const success = await runCommands(allCommands, {
 				onBefore: (cmd, i) => p.log.step(`▶ [${i + 1}/${totalSteps}] ${cmd}`),
 				onSuccess: () => p.log.success("All commands completed successfully."),
-				onError: (cmd, exitCode) => p.log.error(`Command exited with code ${exitCode}: ${cmd}`),
+				onError: (cmd, exitCode) =>
+					p.log.error(`Command exited with code ${exitCode}: ${cmd}`),
 			});
 			if (success) {
 				await runCleanup(files);
@@ -651,7 +687,12 @@ async function handleBatchFlow(
 					: await handleEditPromptAction(userRequest, ctx, config);
 			userRequest = gen.userRequest;
 			if (!("multi_file" in gen.result)) {
-				await runSingleFileFlow(gen.result as GenerateResult, userRequest, ctx, config);
+				await runSingleFileFlow(
+					gen.result as GenerateResult,
+					userRequest,
+					ctx,
+					config,
+				);
 				return;
 			}
 			result = gen.result as MultiFileResult;

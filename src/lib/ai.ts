@@ -69,7 +69,10 @@ export function validateResponse(raw: string): AiResult {
 		);
 	}
 
-	return { commands: obj.commands as string[], explanation: obj.explanation } satisfies GenerateResult;
+	return {
+		commands: obj.commands as string[],
+		explanation: obj.explanation,
+	} satisfies GenerateResult;
 }
 
 export async function generateWithCloudflare(
