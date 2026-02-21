@@ -115,8 +115,8 @@
         "Typecheck passes"
       ],
       "priority": 6,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Created src/lib/clipboard.ts (lifted from reference): copyToClipboard() uses pbcopy on macOS, iterates xclip/xsel/wl-copy on Linux via Bun.$`which`. Created src/lib/run.ts: runCommands(commands, {onBefore, onSuccess, onError}) runs each command via Bun.spawn(['sh','-c',cmd], {stdout:'inherit',stderr:'inherit'}), awaits exited, stops on non-zero exit. Updated src/index.ts: replaced stub with action menu loop — copy joins commands with \\n and writes to clipboard (success/warn message then exit); edit pre-fills p.text with current commands, splits back to array, re-renders panels and continues loop; run calls runCommands with ▶ [i/N] step logging, exits 0/1; cancel exits 0. Typecheck passes."
     },
     {
       "id": "US-007",
