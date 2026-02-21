@@ -4,7 +4,7 @@ import { gradientColors } from "./theme.js";
 const bannerGradient = gradient([...gradientColors.banner]);
 
 const BANNER = `
-                     d8,                         
+                       d8,                         
                       \`8P                          
                                                    
    d888b8b  ?88   d8P  88b d8888b d8888b   88bd88b 

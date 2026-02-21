@@ -53,9 +53,7 @@ async function probeFfmpeg(): Promise<ToolContext["ffmpeg"]> {
 
 	// Bitstream filters: simple list after header
 	const bsfLines = bsfsOut.split("\n");
-	const bsfStart = bsfLines.findIndex((l) =>
-		l.includes("Bitstream filters:"),
-	);
+	const bsfStart = bsfLines.findIndex((l) => l.includes("Bitstream filters:"));
 	const bitstreamFilters =
 		bsfStart >= 0
 			? bsfLines

@@ -196,7 +196,9 @@ function renderToolSummary(ctx: ToolCtx): string {
 		const fil = ctx.ffmpeg.filters.length;
 		const fmt = ctx.ffmpeg.formats.length;
 		parts.push(
-			theme.muted(`FFmpeg ${ver} (${cod} codecs · ${fil} filters · ${fmt} formats)`),
+			theme.muted(
+				`FFmpeg ${ver} (${cod} codecs · ${fil} filters · ${fmt} formats)`,
+			),
 		);
 	} else {
 		parts.push(frappe.yellow("FFmpeg not found"));
